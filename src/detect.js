@@ -6,9 +6,8 @@ const LURAPH_VM_SHAPE = /\[\d+\]=(bit32|buffer|string|table|math)\.\w+/;
 function detectLuraph(source) {
   const head500 = source.slice(0, 500);
   const m = LURAPH_HEADER.exec(head500);
-  if (m) {
-    return m[1] === '15' ? 1.0 : 0.3;
-  }
+  if (m) return m[1] === '15' ? 1.0 : 0.85;
+
   const head2k = source.trimStart().slice(0, 2000);
   if (head2k.startsWith('return setmetatable({') &&
       (LURAPH_VM_SHAPE.test(head2k) || source.slice(0, 200000).includes('LPH'))) {
@@ -40,15 +39,21 @@ const PLUGINS = [
 ];
 
 function detect(source) {
-  let best = { plugin: null, confidence: 0 };
-  for (const p of PLUGINS) {
-    const c = p.detect(source);
-    if (c > best.confidence) best = { plugin: p, confidence: c };
+  const confidence = detectLuraph(source);
+  if (confidence >= 0.5) {
+    const version = LURAPH_HEADER.exec(source.slice(0, 500));
+    const plugin = version
+      ? {
+          name: version[1] === '15' ? 'luraph_v15' : `luraph_v${version[1]}`,
+          label: `Luraph v${version[1]}${version[2] ? `.${version[2]}` : ''}`,
+        }
+      : { name: 'luraph_unknown', label: 'Luraph (version unknown)' };
+    return { plugin, confidence };
   }
-  if (best.confidence < 0.5) {
-    return { plugin: { name: 'generic', label: 'unknown obfuscator (behaviour trace only)' }, confidence: 0 };
-  }
-  return { plugin: best.plugin, confidence: best.confidence };
+  return {
+    plugin: { name: 'generic', label: 'unknown obfuscator (behaviour trace only)' },
+    confidence: 0,
+  };
 }
 
 function byName(name) {
