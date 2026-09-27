@@ -132,6 +132,41 @@ node deob.js input.lua --detect
 
 ---
 
+## Discord Bot
+
+This repository also includes a Discord prefix-command bot. Attach a `.lua` or `.luau` file to the `.lph` command, or paste the script after `.lph` inside a fenced Lua code block. The bot replies with `deobfuscated.lua` when processing finishes.
+
+### Run the bot
+
+1. Install Node.js 18+ and Python 3.10+ (the deobfuscation backend uses the bundled Python analysis engine). The committed Luau executables are Windows-only; on Linux/macOS, install compatible native `luau` and `luau-ast` binaries (`luau` on `PATH` or in `bin/`, and `luau-ast` in `bin/`) before running jobs.
+2. Install dependencies: `npm install`.
+3. In the [Discord Developer Portal](https://discord.com/developers/applications), create a bot, enable **Message Content Intent**, and invite it to your server with permission to read/send messages and attach files.
+4. Set the bot token in the environment and start it:
+
+```bash
+# Linux / macOS
+export DISCORD_TOKEN="your-bot-token"
+npm run start:bot
+
+# Windows PowerShell
+$env:DISCORD_TOKEN="your-bot-token"
+npm run start:bot
+```
+
+Configuration (all optional except `DISCORD_TOKEN`):
+
+| Environment variable | Default | Description |
+|---|---:|---|
+| `DISCORD_TOKEN` | — | Discord bot token (keep it private; do not commit it) |
+| `LPH_MAX_INPUT_MB` | `8` | Maximum input script size |
+| `LPH_MAX_OUTPUT_MB` | `8` | Maximum result attachment size |
+| `LPH_JOB_TIMEOUT_MINUTES` | `15` | Maximum runtime for a deobfuscation job |
+| `LPH_MAX_JOBS` | `2` | Number of simultaneous jobs |
+
+The bot recognizes Luraph version headers across versions. The full VM devirtualizer in this repository is specifically tuned for **Luraph v15**; other detected versions are routed through the generic behavior-trace path and may not yield fully reconstructed source.
+
+---
+
 ## Performance
 
 The engine has been heavily optimized (symbolic AST caching, iterative tree walks, single-pass state analysis, shared dispatch-loop cache, and a bounded SCCP walk). Measured on the bundled `sample/` scripts, the current build is **1.6x to 1.8x faster** than the previous release, and scripts that previously crashed now lift completely:
